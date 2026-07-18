@@ -1,0 +1,102 @@
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding-bottom: 2rem;
+}
+
+.settings-group {
+  padding: 2rem;
+  border-radius: 16px;
+}
+
+.settings-group-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #fff;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.text-danger {
+  color: #ef4444;
+}
+
+.setting-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.setting-info h4 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.setting-info p {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.setting-select {
+  background: rgba(20, 24, 44, 0.8);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.setting-select option {
+  background: var(--bg-color);
+}
+
+.theme-toggle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 0.25rem;
+}
+
+.theme-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.theme-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-main);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.danger-btn {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 500;
+  transition: var(--transition);
+}
+
+.danger-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.danger-zone {
+  border-color: rgba(239, 68, 68, 0.2);
+}

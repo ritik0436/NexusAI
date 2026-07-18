@@ -1,0 +1,82 @@
+.message-wrapper {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  max-width: 80%;
+}
+
+.message-wrapper.user {
+  margin-left: auto;
+  flex-direction: row;
+}
+
+.message-wrapper.bot {
+  margin-right: auto;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.bot-avatar {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+}
+
+.bot-icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+}
+
+.user-avatar {
+  background: linear-gradient(135deg, #2c3e50, #3498db);
+  color: white;
+}
+
+.message-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.message-wrapper.user .message-content {
+  align-items: flex-end;
+}
+
+.message-sender {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin: 0 0.25rem;
+}
+
+.message-bubble {
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  line-height: 1.5;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.message-wrapper.bot .message-bubble {
+  background: rgba(20, 24, 44, 0.6);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-color);
+  border-top-left-radius: 2px;
+}
+
+.message-wrapper.user .message-bubble {
+  background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-accent-hover) 100%);
+  color: white;
+  border-top-right-radius: 2px;
+}

@@ -1,0 +1,27 @@
+.chat-area {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  position: relative;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  scroll-behavior: smooth;
+}
+
+.messages-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 2rem; /* Space before input */
+}
+
+.input-region {
+  padding: 0 2rem;
+  background: linear-gradient(to top, var(--bg-color) 40%, transparent);
+}
