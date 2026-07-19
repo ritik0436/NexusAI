@@ -29,6 +29,9 @@
   display: flex;
   flex-direction: column;
   gap: 2.5rem;
+  background: var(--surface-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 
 .profile-header-large {
@@ -41,19 +44,20 @@
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2c3e50, #3498db);
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
   font-size: 2rem;
   color: #fff;
-  box-shadow: 0 8px 24px rgba(52, 152, 219, 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .profile-info-large h3 {
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
+  color: var(--text-main);
 }
 
 .badge {
@@ -67,9 +71,9 @@
 }
 
 .pro-badge {
-  background: rgba(107, 76, 255, 0.15);
+  background: rgba(59, 130, 246, 0.1);
   color: var(--primary-accent);
-  border: 1px solid rgba(107, 76, 255, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .stats-grid {
@@ -79,7 +83,7 @@
 }
 
 .stat-box {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-color);
   border: 1px solid var(--border-color);
   padding: 1.5rem;
   border-radius: 16px;
@@ -111,15 +115,16 @@
   border-radius: 12px;
   font-weight: 500;
   transition: var(--transition);
+  border: none;
 }
 
 .primary-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(107, 76, 255, 0.4);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 
 .secondary-btn {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   padding: 0.75rem 1.5rem;
@@ -129,5 +134,5 @@
 }
 
 .secondary-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-color);
 }

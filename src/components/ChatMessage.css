@@ -1,82 +1,155 @@
 .message-wrapper {
   display: flex;
   gap: 1rem;
-  margin-bottom: 2rem;
-  max-width: 80%;
+  margin-bottom: 1.75rem;
+  max-width: 100%;
+  animation: msgIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.message-wrapper.user {
-  margin-left: auto;
-  flex-direction: row;
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Bot message ────────────────────────────────────── */
 .message-wrapper.bot {
-  margin-right: auto;
+  flex-direction: row;
+  align-items: flex-start;
 }
 
+.message-wrapper.bot .message-content {
+  flex: 1;
+  max-width: 75%;
+}
+
+/* ── User message ───────────────────────────────────── */
+.message-wrapper.user {
+  justify-content: flex-end;
+  align-items: flex-end;
+}
+
+.message-wrapper.user .message-content {
+  align-items: flex-end;
+  max-width: 70%;
+}
+
+/* ── Avatars ────────────────────────────────────────── */
 .message-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-weight: 600;
-  font-size: 0.875rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  margin-top: 4px;
 }
 
 .bot-avatar {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-color);
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
 }
 
 .bot-icon {
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+  background: white;
+  border-radius: 3px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
 }
 
 .user-avatar {
-  background: linear-gradient(135deg, #2c3e50, #3498db);
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
   color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
+/* ── Sender label ───────────────────────────────────── */
 .message-content {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-}
-
-.message-wrapper.user .message-content {
-  align-items: flex-end;
+  gap: 0.35rem;
 }
 
 .message-sender {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   color: var(--text-muted);
-  font-weight: 500;
-  margin: 0 0.25rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 0 0.5rem;
+  text-transform: uppercase;
 }
+
+/* ══════════════════════════════════════════════════════
+   GLASS BUBBLES  (light mode)
+══════════════════════════════════════════════════════ */
 
 .message-bubble {
-  padding: 1rem 1.25rem;
-  border-radius: 12px;
-  line-height: 1.5;
-  font-size: 0.95rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 0.9rem 1.2rem;
+  border-radius: 18px;
+  font-size: 0.975rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  position: relative;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: box-shadow 0.2s ease;
 }
 
+/* ── Bot glass bubble (light) ────────────────────── */
 .message-wrapper.bot .message-bubble {
-  background: rgba(20, 24, 44, 0.6);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-color);
-  border-top-left-radius: 2px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border-radius: 4px 18px 18px 18px;
+  color: #0f172a;
 }
 
+.message-wrapper.bot .message-bubble:hover {
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ── User glass bubble (light) ───────────────────── */
 .message-wrapper.user .message-bubble {
-  background: linear-gradient(135deg, var(--primary-accent) 0%, var(--primary-accent-hover) 100%);
-  color: white;
-  border-top-right-radius: 2px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow:
+    0 4px 24px rgba(59, 130, 246, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  border-radius: 18px 4px 18px 18px;
+  color: #1e40af;
+}
+
+.message-wrapper.user .message-bubble:hover {
+  box-shadow:
+    0 8px 32px rgba(59, 130, 246, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* ══════════════════════════════════════════════════════
+   GLASS BUBBLES  (dark mode)
+══════════════════════════════════════════════════════ */
+
+:root[data-theme="dark"] .message-wrapper.bot .message-bubble {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+:root[data-theme="dark"] .message-wrapper.user .message-bubble {
+  background: rgba(107, 76, 255, 0.18);
+  border: 1px solid rgba(107, 76, 255, 0.35);
+  box-shadow:
+    0 4px 24px rgba(107, 76, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  color: #e2e8f0;
 }

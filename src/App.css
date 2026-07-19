@@ -12,6 +12,31 @@
   flex-direction: column;
   position: relative;
   background: var(--chat-bg);
+  height: 100vh;
+}
+
+.top-bar {
+  padding: 1rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+}
+
+.menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.menu-toggle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-main);
 }
 
 .placeholder-view {

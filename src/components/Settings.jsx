@@ -1,9 +1,8 @@
 import './Settings.css'
 import { useState } from 'react'
 
-export default function Settings() {
+export default function Settings({ theme, setTheme }) {
   const [model, setModel] = useState('nexus-fast')
-  const [theme, setTheme] = useState('dark')
 
   return (
     <div className="view-container animate-fade-in">

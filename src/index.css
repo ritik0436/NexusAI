@@ -1,20 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-:root {
+:root, :root[data-theme="light"] {
+  --bg-color: #ffffff;
+  --bg-gradient: none;
+  --sidebar-bg: #fafafa;
+  --chat-bg: transparent;
+  --primary-accent: #3b82f6;
+  --primary-accent-hover: #2563eb;
+  --secondary-accent: #8b5cf6;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --surface-bg: #ffffff;
+  --surface-hover: rgba(0, 0, 0, 0.03);
+  --glass-shadow: 0 1px 3px rgb(0 0 0 / 0.06), 0 1px 2px rgb(0 0 0 / 0.04);
+  --glass-blur: blur(0px);
+  --border-radius: 12px;
+  --transition: all 0.2s ease-in-out;
+}
+
+:root[data-theme="dark"] {
   --bg-color: #0b0f19;
   --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #1a1b3a 100%);
-  --sidebar-bg: rgba(20, 24, 44, 0.6);
-  --chat-bg: rgba(255, 255, 255, 0.02);
+  --sidebar-bg: #14182c;
+  --chat-bg: transparent;
   --primary-accent: #6b4cff;
   --primary-accent-hover: #8266ff;
   --secondary-accent: #00d2ff;
   --text-main: #f3f4f6;
   --text-muted: #9ca3af;
-  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --surface-bg: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.08);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   --glass-blur: blur(12px);
-  --border-radius: 16px;
-  --transition: all 0.3s ease;
 }
 
 * {
