@@ -9,7 +9,9 @@ import './App.css'
 function App() {
   const [currentView, setCurrentView] = useState('chat')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [theme, setTheme] = useState('light')
+  const [theme, setTheme] = useState(() => {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
   const [token, setToken] = useState(() => localStorage.getItem('nexus_token'))
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('nexus_user')) } catch { return null }

@@ -5,6 +5,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createRequire } from 'module'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
+import nodemailer from 'nodemailer'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -19,41 +20,120 @@ const DB_PATH = path.join(__dirname, 'nexus.db')
 
 const app = express()
 const port = 3001
-const JWT_SECRET = process.env.JWT_SECRET || 'nexus-ai-secret-key-2026'
 
-app.use(cors())
-app.use(express.json())
+const EFFECTIVE_JWT_SECRET = process.env.JWT_SECRET || 'nexus-ai-dev-secret-do-not-use-in-prod'
+if (!process.env.JWT_SECRET) console.warn('⚠️  JWT_SECRET not set — using insecure fallback!')
 
-// ─── Database Setup ───────────────────────────────────────────────────────────
+// ─── CORS ─────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173').split(',')
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true)
+    cb(new Error(`CORS: Origin '${origin}' not allowed`))
+  },
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}))
+
+app.use(express.json({ limit: '50kb' }))
+
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('X-XSS-Protection', '1; mode=block')
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  next()
+})
+
+// ─── Rate limiter ──────────────────────────────────────────────────────────────
+const rateLimitMap = new Map()
+function rateLimit(windowMs, maxRequests) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown'
+    const now = Date.now()
+    const entry = rateLimitMap.get(ip) || { count: 0, resetAt: now + windowMs }
+    if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + windowMs }
+    entry.count++
+    rateLimitMap.set(ip, entry)
+    if (entry.count > maxRequests) return res.status(429).json({ error: 'Too many requests. Please slow down.' })
+    next()
+  }
+}
+
+// ─── Email (nodemailer / Gmail) ───────────────────────────────────────────────
+let transporter = null
+const emailConfigured = process.env.SMTP_USER && process.env.SMTP_PASS &&
+  !process.env.SMTP_USER.includes('your-gmail')
+
+if (emailConfigured) {
+  transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  })
+  transporter.verify()
+    .then(() => console.log('✓ Email (Gmail SMTP) ready'))
+    .catch(e => console.warn('⚠️  Email transport error:', e.message))
+} else {
+  console.warn('⚠️  SMTP_USER/SMTP_PASS not configured — OTP codes will be printed to console.')
+}
+
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
+async function sendVerificationEmail(toEmail, username, code) {
+  if (!transporter) {
+    console.log(`\n📧 [DEV MODE] Verification code for ${toEmail}: ${code}\n`)
+    return
+  }
+  await transporter.sendMail({
+    from: `"Nexus AI" <${process.env.SMTP_USER}>`,
+    to: toEmail,
+    subject: 'Verify your Nexus AI account',
+    html: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: auto; padding: 32px; border-radius: 12px; border: 1px solid #e2e8f0;">
+        <h2 style="background: linear-gradient(to right, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 8px;">Nexus AI</h2>
+        <p style="color: #64748b; margin: 0 0 24px;">Welcome, ${username}! Verify your email to get started.</p>
+        <div style="background: #f8fafc; border-radius: 10px; padding: 24px; text-align: center; margin-bottom: 24px;">
+          <p style="margin: 0 0 8px; color: #64748b; font-size: 14px;">Your verification code</p>
+          <span style="font-size: 36px; font-weight: 700; letter-spacing: 10px; color: #0f172a;">${code}</span>
+        </div>
+        <p style="color: #94a3b8; font-size: 13px; margin: 0;">This code expires in <strong>15 minutes</strong>. If you didn't sign up, ignore this email.</p>
+      </div>
+    `,
+  })
+}
+
+// ─── Database ──────────────────────────────────────────────────────────────────
 let db
 const SQL = await initSqlJs()
 
 if (fs.existsSync(DB_PATH)) {
-  const fileBuffer = fs.readFileSync(DB_PATH)
-  db = new SQL.Database(fileBuffer)
+  db = new SQL.Database(fs.readFileSync(DB_PATH))
   console.log('✓ Loaded existing database:', DB_PATH)
 } else {
   db = new SQL.Database()
   console.log('✓ Created new database:', DB_PATH)
 }
 
-// Save DB to disk on exit and periodically
 function saveDb() {
-  const data = db.export()
-  fs.writeFileSync(DB_PATH, Buffer.from(data))
+  fs.writeFileSync(DB_PATH, Buffer.from(db.export()))
 }
-setInterval(saveDb, 10000) // Auto-save every 10s
+setInterval(saveDb, 10000)
 process.on('exit', saveDb)
 process.on('SIGINT', () => { saveDb(); process.exit() })
 process.on('SIGTERM', () => { saveDb(); process.exit() })
 
-// Create tables
 db.run(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 0,
+    otp_code TEXT,
+    otp_expires_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
   CREATE TABLE IF NOT EXISTS chats (
@@ -72,9 +152,20 @@ db.run(`
     FOREIGN KEY (chat_id) REFERENCES chats(id)
   );
 `)
+
+// Migrate existing users table if verified column doesn't exist
+try {
+  db.run(`ALTER TABLE users ADD COLUMN verified INTEGER NOT NULL DEFAULT 0`)
+  db.run(`ALTER TABLE users ADD COLUMN otp_code TEXT`)
+  db.run(`ALTER TABLE users ADD COLUMN otp_expires_at TEXT`)
+  // Mark existing users as verified so they aren't locked out
+  db.run(`UPDATE users SET verified = 1 WHERE verified IS NULL OR verified = 0`)
+  console.log('✓ Migrated users table with verification columns')
+} catch {
+  // Columns already exist — fine
+}
 saveDb()
 
-// Helper: run a query and get rows as objects
 function dbAll(sql, params = []) {
   const stmt = db.prepare(sql)
   stmt.bind(params)
@@ -83,11 +174,7 @@ function dbAll(sql, params = []) {
   stmt.free()
   return rows
 }
-
-function dbGet(sql, params = []) {
-  return dbAll(sql, params)[0] || null
-}
-
+function dbGet(sql, params = []) { return dbAll(sql, params)[0] || null }
 function dbRun(sql, params = []) {
   const stmt = db.prepare(sql)
   stmt.run(params)
@@ -95,28 +182,31 @@ function dbRun(sql, params = []) {
   return db.exec('SELECT last_insert_rowid() as id')[0]?.values[0][0]
 }
 
-// ─── Auth Middleware ──────────────────────────────────────────────────────────
+function sanitizeString(str, maxLen = 255) {
+  if (typeof str !== 'string') return ''
+  return str.trim().slice(0, maxLen)
+}
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+}
+
+// ─── Auth Middleware ───────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
   const auth = req.headers.authorization
-  if (!auth || !auth.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' })
-  }
+  if (!auth?.startsWith('Bearer ')) return res.status(401).json({ error: 'Authentication required' })
   try {
-    req.user = jwt.verify(auth.slice(7), JWT_SECRET)
+    req.user = jwt.verify(auth.slice(7), EFFECTIVE_JWT_SECRET)
     next()
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' })
   }
 }
 
-// ─── Gemini Setup ─────────────────────────────────────────────────────────────
+// ─── Gemini ───────────────────────────────────────────────────────────────────
 let genAI = null
-if (process.env.GEMINI_API_KEY) {
-  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-}
+if (process.env.GEMINI_API_KEY) genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
 const SYSTEM_INSTRUCTION = `You are Nexus AI. Reply directly and concisely. Never show reasoning, drafts, bullet-point options, or internal notes. Just give the final answer.`
-
 let cachedModelName = null
 
 function cleanResponse(raw) {
@@ -166,37 +256,123 @@ async function discoverWorkingModel() {
   throw new Error('No working model found.')
 }
 
-// ─── Auth Routes ──────────────────────────────────────────────────────────────
-app.post('/api/auth/register', async (req, res) => {
+// ─── Auth Routes ───────────────────────────────────────────────────────────────
+const authLimiter = rateLimit(15 * 60 * 1000, 10)
+
+// REGISTER — creates unverified account, sends OTP
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
-    const { username, email, password } = req.body
+    const username = sanitizeString(req.body.username, 50)
+    const email = sanitizeString(req.body.email, 255).toLowerCase()
+    const password = typeof req.body.password === 'string' ? req.body.password : ''
+
     if (!username || !email || !password)
       return res.status(400).json({ error: 'All fields are required' })
+    if (!isValidEmail(email))
+      return res.status(400).json({ error: 'Invalid email format' })
     if (password.length < 6)
       return res.status(400).json({ error: 'Password must be at least 6 characters' })
-    if (dbGet('SELECT id FROM users WHERE email = ?', [email]))
-      return res.status(409).json({ error: 'Email already registered' })
+    if (password.length > 128)
+      return res.status(400).json({ error: 'Password too long' })
+    if (username.length < 2)
+      return res.status(400).json({ error: 'Username must be at least 2 characters' })
 
-    const password_hash = await bcrypt.hash(password, 10)
-    const id = dbRun('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', [username, email, password_hash])
+    const existing = dbGet('SELECT id, verified FROM users WHERE email = ?', [email])
+    if (existing && existing.verified) {
+      return res.status(409).json({ error: 'Email already registered' })
+    }
+
+    const otp = generateOTP()
+    const otpExpires = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    const password_hash = await bcrypt.hash(password, 12)
+
+    if (existing && !existing.verified) {
+      // Resend OTP to existing unverified account
+      dbRun('UPDATE users SET otp_code = ?, otp_expires_at = ?, password_hash = ?, username = ? WHERE email = ?',
+        [otp, otpExpires, password_hash, username, email])
+    } else {
+      dbRun('INSERT INTO users (username, email, password_hash, verified, otp_code, otp_expires_at) VALUES (?, ?, ?, 0, ?, ?)',
+        [username, email, password_hash, otp, otpExpires])
+    }
     saveDb()
-    const token = jwt.sign({ id, username, email }, JWT_SECRET, { expiresIn: '30d' })
-    res.json({ token, user: { id, username, email } })
+
+    await sendVerificationEmail(email, username, otp)
+    res.json({ needsVerification: true, email, message: 'Verification code sent to your email.' })
   } catch (e) {
     console.error('Register error:', e.message)
-    res.status(500).json({ error: 'Registration failed' })
+    res.status(500).json({ error: 'Registration failed. Check your email configuration.' })
   }
 })
 
-app.post('/api/auth/login', async (req, res) => {
+// VERIFY OTP
+app.post('/api/auth/verify', authLimiter, (req, res) => {
   try {
-    const { email, password } = req.body
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' })
+    const email = sanitizeString(req.body.email, 255).toLowerCase()
+    const code = sanitizeString(req.body.code, 10)
+
+    if (!email || !code) return res.status(400).json({ error: 'Email and code are required' })
+
     const user = dbGet('SELECT * FROM users WHERE email = ?', [email])
-    if (!user || !(await bcrypt.compare(password, user.password_hash)))
-      return res.status(401).json({ error: 'Invalid email or password' })
-    const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, JWT_SECRET, { expiresIn: '30d' })
+    if (!user) return res.status(404).json({ error: 'Account not found' })
+    if (user.verified) return res.status(400).json({ error: 'Account already verified' })
+
+    if (!user.otp_code || user.otp_code !== code)
+      return res.status(400).json({ error: 'Incorrect verification code' })
+
+    if (new Date(user.otp_expires_at) < new Date())
+      return res.status(400).json({ error: 'Code has expired. Please register again to get a new code.' })
+
+    dbRun('UPDATE users SET verified = 1, otp_code = NULL, otp_expires_at = NULL WHERE email = ?', [email])
+    saveDb()
+
+    const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, EFFECTIVE_JWT_SECRET, { expiresIn: '30d' })
+    res.json({ token, user: { id: user.id, username: user.username, email: user.email } })
+  } catch (e) {
+    console.error('Verify error:', e.message)
+    res.status(500).json({ error: 'Verification failed' })
+  }
+})
+
+// RESEND OTP
+app.post('/api/auth/resend', authLimiter, async (req, res) => {
+  try {
+    const email = sanitizeString(req.body.email, 255).toLowerCase()
+    const user = dbGet('SELECT * FROM users WHERE email = ?', [email])
+    if (!user) return res.status(404).json({ error: 'Account not found' })
+    if (user.verified) return res.status(400).json({ error: 'Account already verified' })
+
+    const otp = generateOTP()
+    const otpExpires = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    dbRun('UPDATE users SET otp_code = ?, otp_expires_at = ? WHERE email = ?', [otp, otpExpires, email])
+    saveDb()
+
+    await sendVerificationEmail(email, user.username, otp)
+    res.json({ message: 'New verification code sent.' })
+  } catch (e) {
+    console.error('Resend error:', e.message)
+    res.status(500).json({ error: 'Failed to resend code' })
+  }
+})
+
+// LOGIN — only verified users can log in
+app.post('/api/auth/login', authLimiter, async (req, res) => {
+  try {
+    const email = sanitizeString(req.body.email, 255).toLowerCase()
+    const password = typeof req.body.password === 'string' ? req.body.password : ''
+
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' })
+
+    const user = dbGet('SELECT * FROM users WHERE email = ?', [email])
+    const dummyHash = '$2b$12$invalidhashfortimingprotection0000000000000000000000'
+    const valid = user ? await bcrypt.compare(password, user.password_hash) : await bcrypt.compare(password, dummyHash)
+
+    if (!user || !valid) return res.status(401).json({ error: 'Invalid email or password' })
+
+    if (!user.verified) {
+      return res.status(403).json({ error: 'Please verify your email before logging in.', needsVerification: true, email })
+    }
+
+    const token = jwt.sign({ id: user.id, username: user.username, email: user.email }, EFFECTIVE_JWT_SECRET, { expiresIn: '30d' })
     res.json({ token, user: { id: user.id, username: user.username, email: user.email } })
   } catch (e) {
     console.error('Login error:', e.message)
@@ -204,24 +380,23 @@ app.post('/api/auth/login', async (req, res) => {
   }
 })
 
-// ─── Chat History Routes ──────────────────────────────────────────────────────
+// ─── Chat Routes ───────────────────────────────────────────────────────────────
 app.get('/api/chats', requireAuth, (req, res) => {
   const chats = dbAll('SELECT * FROM chats WHERE user_id = ? ORDER BY created_at DESC', [req.user.id])
   res.json({ chats })
 })
 
 app.post('/api/chats', requireAuth, (req, res) => {
-  const { title } = req.body
-  const id = dbRun('INSERT INTO chats (user_id, title) VALUES (?, ?)', [req.user.id, title || 'New Chat'])
+  const title = sanitizeString(req.body.title || 'New Chat', 100)
+  const id = dbRun('INSERT INTO chats (user_id, title) VALUES (?, ?)', [req.user.id, title])
   saveDb()
-  const chat = dbGet('SELECT * FROM chats WHERE id = ?', [id])
-  res.json({ chat })
+  res.json({ chat: dbGet('SELECT * FROM chats WHERE id = ?', [id]) })
 })
 
 app.patch('/api/chats/:id', requireAuth, (req, res) => {
   const chat = dbGet('SELECT * FROM chats WHERE id = ? AND user_id = ?', [req.params.id, req.user.id])
   if (!chat) return res.status(404).json({ error: 'Chat not found' })
-  dbRun('UPDATE chats SET title = ? WHERE id = ?', [req.body.title, req.params.id])
+  dbRun('UPDATE chats SET title = ? WHERE id = ?', [sanitizeString(req.body.title || 'New Chat', 100), req.params.id])
   saveDb()
   res.json({ success: true })
 })
@@ -238,15 +413,19 @@ app.delete('/api/chats/:id', requireAuth, (req, res) => {
 app.get('/api/chats/:id/messages', requireAuth, (req, res) => {
   const chat = dbGet('SELECT * FROM chats WHERE id = ? AND user_id = ?', [req.params.id, req.user.id])
   if (!chat) return res.status(404).json({ error: 'Chat not found' })
-  const messages = dbAll('SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at ASC', [req.params.id])
+  const messages = dbAll('SELECT id, role, content, created_at FROM messages WHERE chat_id = ? ORDER BY created_at ASC', [req.params.id])
   res.json({ messages })
 })
 
-// ─── Main Chat Endpoint ───────────────────────────────────────────────────────
-app.post('/api/chat', requireAuth, async (req, res) => {
+const chatLimiter = rateLimit(60 * 1000, 30)
+app.post('/api/chat', requireAuth, chatLimiter, async (req, res) => {
   try {
-    const { message, chatId } = req.body
+    const { chatId } = req.body
+    const message = sanitizeString(req.body.message || '', 4000)
     if (!message || !chatId) return res.status(400).json({ error: 'message and chatId required' })
+
+    const chat = dbGet('SELECT * FROM chats WHERE id = ? AND user_id = ?', [chatId, req.user.id])
+    if (!chat) return res.status(403).json({ error: 'Access denied' })
 
     dbRun('INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)', [chatId, 'user', message])
 
@@ -258,14 +437,9 @@ app.post('/api/chat', requireAuth, async (req, res) => {
     }
 
     if (!cachedModelName) cachedModelName = await discoverWorkingModel()
-
     let text
     try {
-      const model = genAI.getGenerativeModel({
-        model: cachedModelName,
-        systemInstruction: SYSTEM_INSTRUCTION,
-        generationConfig: { thinkingConfig: { thinkingBudget: 1024 } },
-      })
+      const model = genAI.getGenerativeModel({ model: cachedModelName, systemInstruction: SYSTEM_INSTRUCTION, generationConfig: { thinkingConfig: { thinkingBudget: 1024 } } })
       text = extractFinalAnswer((await model.generateContent(message)).response)
     } catch {
       cachedModelName = await discoverWorkingModel()
@@ -274,20 +448,21 @@ app.post('/api/chat', requireAuth, async (req, res) => {
     }
 
     dbRun('INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)', [chatId, 'bot', text])
-
-    // Auto-title from first message
-    const chatData = dbGet('SELECT * FROM chats WHERE id = ?', [chatId])
-    if (chatData?.title === 'New Chat') {
-      const title = message.slice(0, 50) + (message.length > 50 ? '...' : '')
-      dbRun('UPDATE chats SET title = ? WHERE id = ?', [title, chatId])
+    if (chat.title === 'New Chat') {
+      dbRun('UPDATE chats SET title = ? WHERE id = ?', [message.slice(0, 50) + (message.length > 50 ? '...' : ''), chatId])
     }
     saveDb()
-
     res.json({ response: text })
   } catch (error) {
     console.error('Chat error:', error.message)
     res.status(500).json({ error: 'Failed to generate response. Please try again.' })
   }
+})
+
+app.use((req, res) => res.status(404).json({ error: 'Not found' }))
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err.message)
+  res.status(500).json({ error: 'Internal server error' })
 })
 
 app.listen(port, () => {

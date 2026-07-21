@@ -241,3 +241,54 @@
 .auth-switch-btn:hover {
   text-decoration: underline;
 }
+
+/* ── Info box ─────────────────────────────────────── */
+.auth-info {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: #2563eb;
+  font-size: 0.875rem;
+}
+
+/* ── Verify Screen ────────────────────────────────── */
+.verify-icon {
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+/* ── OTP digit row ────────────────────────────────── */
+.otp-row {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+.otp-box {
+  width: 48px;
+  height: 56px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  transition: var(--transition);
+  caret-color: var(--primary-accent);
+}
+
+.otp-box:focus {
+  outline: none;
+  border-color: var(--primary-accent);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.otp-box.filled {
+  border-color: var(--primary-accent);
+  background: rgba(59, 130, 246, 0.05);
+}
+
