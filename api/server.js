@@ -450,7 +450,7 @@ app.post('/api/chat', requireAuth, chatLimiter, async (req, res) => {
 app.use((req, res) => res.status(404).json({ error: 'Not found' }))
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message)
-  res.status(500).json({ error: 'Internal server error' })
+  res.status(500).json({ error: 'Internal server error', details: err.message, stack: err.stack })
 })
 
 if (process.env.NODE_ENV !== 'production') {
