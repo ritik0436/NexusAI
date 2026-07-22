@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './Sidebar.css'
+import API_URL from '../config'
 
 function groupChatsByDate(chats) {
   const now = new Date()
@@ -27,7 +28,7 @@ export default function Sidebar({
     if (!token) return
     setLoadingChats(true)
     try {
-      const res = await fetch('http://localhost:3001/api/chats', {
+      const res = await fetch(`${API_URL}/api/chats`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -44,7 +45,7 @@ export default function Sidebar({
   const handleDeleteChat = async (e, chatId) => {
     e.stopPropagation()
     try {
-      await fetch(`http://localhost:3001/api/chats/${chatId}`, {
+      await fetch(`${API_URL}/api/chats/${chatId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` }
       })

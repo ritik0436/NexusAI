@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import './AuthPage.css'
+import API_URL from '../config'
 
 export default function AuthPage({ onAuth }) {
   const [mode, setMode] = useState('login') // 'login' | 'register' | 'verify'
@@ -51,7 +52,7 @@ export default function AuthPage({ onAuth }) {
 
     try {
       if (mode === 'login') {
-        const res = await fetch('http://localhost:3001/api/auth/login', {
+        const res = await fetch(`${API_URL}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: form.email, password: form.password })
@@ -71,7 +72,7 @@ export default function AuthPage({ onAuth }) {
           onAuth(data.token, data.user)
         }
       } else if (mode === 'register') {
-        const res = await fetch('http://localhost:3001/api/auth/register', {
+        const res = await fetch(`${API_URL}/api/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: form.username, email: form.email, password: form.password })
@@ -100,7 +101,7 @@ export default function AuthPage({ onAuth }) {
     setError('')
 
     try {
-      const res = await fetch('http://localhost:3001/api/auth/verify', {
+      const res = await fetch(`${API_URL}/api/auth/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: pendingEmail, code })
@@ -126,7 +127,7 @@ export default function AuthPage({ onAuth }) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('http://localhost:3001/api/auth/resend', {
+      const res = await fetch(`${API_URL}/api/auth/resend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: pendingEmail })

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import ChatMessage from './ChatMessage'
 import MessageInput from './MessageInput'
 import './ChatArea.css'
+import API_URL from '../config'
 
 export default function ChatArea({ token, activeChatId, onChatCreated }) {
   const [messages, setMessages] = useState([])
@@ -33,7 +34,7 @@ export default function ChatArea({ token, activeChatId, onChatCreated }) {
 
   const loadChatMessages = async (chatId) => {
     try {
-      const res = await fetch(`http://localhost:3001/api/chats/${chatId}/messages`, {
+      const res = await fetch(`${API_URL}/api/chats/${chatId}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
@@ -57,7 +58,7 @@ export default function ChatArea({ token, activeChatId, onChatCreated }) {
     // Create a new chat if we don't have one yet
     if (!chatId) {
       try {
-        const res = await fetch('http://localhost:3001/api/chats', {
+        const res = await fetch(`${API_URL}/api/chats`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ export default function ChatArea({ token, activeChatId, onChatCreated }) {
     setMessages(prev => [...prev, { id: typingId, role: 'bot', content: '...', isTyping: true }])
 
     try {
-      const res = await fetch('http://localhost:3001/api/chat', {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -23,6 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment files (secrets)
 .env
 server/.env
-node_modules/
+
+# Database files (local only)
+server/nexus.db
+*.db
