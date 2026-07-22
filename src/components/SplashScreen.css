@@ -1,0 +1,99 @@
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: splashFadeOut 0.5s ease 2s forwards;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  animation: splashZoomIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.splash-logo {
+  width: 80px;
+  height: 80px;
+  color: var(--primary-accent);
+  filter: drop-shadow(0 0 20px rgba(107, 76, 255, 0.4));
+  animation: logoFloat 2s ease-in-out infinite alternate;
+}
+
+.splash-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.splash-title {
+  font-size: 3rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.splash-nexus {
+  color: var(--text-main);
+}
+
+.splash-ai {
+  background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.splash-loading-bar {
+  width: 200px;
+  height: 4px;
+  background: var(--surface-hover);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+.splash-loading-progress {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-accent), var(--secondary-accent));
+  border-radius: 4px;
+  animation: loadingProgress 1.8s ease-in-out forwards;
+}
+
+@keyframes splashZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes logoFloat {
+  from { transform: translateY(0px); }
+  to { transform: translateY(-10px); }
+}
+
+@keyframes loadingProgress {
+  0% { width: 0%; }
+  40% { width: 70%; }
+  100% { width: 100%; }
+}
+
+@keyframes splashFadeOut {
+  from {
+    opacity: 1;
+    visibility: visible;
+  }
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}

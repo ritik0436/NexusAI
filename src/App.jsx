@@ -4,6 +4,7 @@ import ChatArea from './components/ChatArea'
 import Settings from './components/Settings'
 import Profile from './components/Profile'
 import AuthPage from './components/AuthPage'
+import SplashScreen from './components/SplashScreen'
 import './App.css'
 
 function App() {
@@ -18,6 +19,12 @@ function App() {
   })
   const [activeChatId, setActiveChatId] = useState(null)
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
+  const [showSplash, setShowSplash] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 2500)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -60,7 +67,9 @@ function App() {
   }
 
   return (
-    <div className="app-container">
+    <>
+      {showSplash && <SplashScreen />}
+      <div className="app-container">
       <Sidebar
         onNavigate={setCurrentView}
         currentView={currentView}
@@ -95,6 +104,7 @@ function App() {
         {currentView === 'profile' && <Profile user={user} />}
       </main>
     </div>
+    </>
   )
 }
 
