@@ -168,18 +168,18 @@ function requireAuth(req, res, next) {
 let genAI = null
 if (process.env.GEMINI_API_KEY) genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 
-const SYSTEM_INSTRUCTION = \`You are Nexus AI. Reply directly and concisely. Never show reasoning, drafts, bullet-point options, or internal notes. Just give the final answer.\`
+const SYSTEM_INSTRUCTION = `You are Nexus AI. Reply directly and concisely. Never show reasoning, drafts, bullet-point options, or internal notes. Just give the final answer.`
 let cachedModelName = null
 
 function cleanResponse(raw) {
   let text = raw
-  text = text.replace(/<think>[\\s\\S]*?<\\/think>/gi, '')
-  text = text.replace(/^\\s*[\\*\\-]\\s*(Role|Persona|Style|Constraints?|Draft\\s*\\d*|User\\s*(Prompt|Message)):.*$/gim, '')
+  text = text.replace(/<think>[\s\S]*?<\/think>/gi, '')
+  text = text.replace(/^\s*[\*\-]\s*(Role|Persona|Style|Constraints?|Draft\s*\d*|User\s*(Prompt|Message)):.*$/gim, '')
   text = text.replace(/^.*(The user (said|asked|wants|is asking)|I should|I need to).*$/gim, '')
-  text = text.replace(/\\n{3,}/g, '\\n\\n')
-  const sentences = text.split(/(?<=[.!?])\\s+/).filter(s => s.trim().length > 2)
+  text = text.replace(/\n{3,}/g, '\n\n')
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 2)
   if (sentences.length > 1) {
-    const normalize = s => s.replace(/\\*\\*/g, '').toLowerCase().trim()
+    const normalize = s => s.replace(/\*\*/g, '').toLowerCase().trim()
     const unique = [], seen = new Set()
     for (let i = sentences.length - 1; i >= 0; i--) {
       const key = normalize(sentences[i])
@@ -202,7 +202,7 @@ function extractFinalAnswer(response) {
 
 async function discoverWorkingModel() {
   console.log('🔍 Discovering models...')
-  const res = await fetch(\`https://generativelanguage.googleapis.com/v1beta/models?key=\${process.env.GEMINI_API_KEY}\`)
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`)
   const data = await res.json()
   const all = (data.models || [])
     .filter(m => m.supportedGenerationMethods?.includes('generateContent') &&
@@ -211,9 +211,9 @@ async function discoverWorkingModel() {
   for (const name of [...all.filter(m => m.startsWith('gemini-')), ...all.filter(m => !m.startsWith('gemini-'))]) {
     try {
       await genAI.getGenerativeModel({ model: name }).generateContent('Hi')
-      console.log(\`✓ Working model: \${name}\`)
+      console.log(`✓ Working model: ${name}`)
       return name
-    } catch { console.log(\`✗ \${name}\`) }
+    } catch { console.log(`✗ ${name}`) }
   }
   throw new Error('No working model found.')
 }
